@@ -52,3 +52,30 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "compliant_bucket_
     }
   }
 }
+
+# security group (SG) with SSH misconfig
+resource "aws_security_group" "insecure_sg" {
+  name        = "insecure-sg-${data.aws_caller_identity.current.account_id}"
+  description = "Intentionally insecure - SSH open to the world"
+
+  ingress {
+    description = "SSH from anywhere"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "compliant_sg" {
+  name        = "compliant-sg-${data.aws_caller_identity.current.account_id}"
+  description = "Compliant - SSH restricted to internal network only"
+
+  ingress {
+    description = "SSH from internal network only"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+}
