@@ -53,7 +53,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "compliant_bucket_
   }
 }
 
-# security group (SG) with SSH misconfig
+# security group (SG) with SSH misconfig on port 22
 resource "aws_security_group" "insecure_sg" {
   name        = "insecure-sg-${data.aws_caller_identity.current.account_id}"
   description = "Intentionally insecure - SSH open to the world"
@@ -75,6 +75,33 @@ resource "aws_security_group" "compliant_sg" {
     description = "SSH from internal network only"
     from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+}
+
+# security group (SG) with RDP misconfig on port 3389
+resource "aws_security_group" "insecure_sg_rdp" {
+  name        = "insecure-sg-rdp-${data.aws_caller_identity.current.account_id}"
+  description = "Intentionally insecure - RDP open to the world"
+
+  ingress {
+    description = "RDP from anywhere"
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "compliant_sg_rdp" {
+  name        = "compliant-sg-rdp-${data.aws_caller_identity.current.account_id}"
+  description = "Compliant - RDP restricted to internal network only"
+
+  ingress {
+    description = "RDP from internal network only"
+    from_port   = 3389
+    to_port     = 3389
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/16"]
   }
