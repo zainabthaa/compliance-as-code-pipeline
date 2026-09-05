@@ -32,3 +32,22 @@ deny contains msg if {
 		[bucket.address],
 	)
 }
+
+# versioning compliant bucket
+bucket_has_versioning(bucket_address) if {
+	some resource in input.configuration.root_module.resources
+	resource.type == "aws_s3_bucket_versioning"
+	some reference in resource.expressions.bucket.references
+	reference == bucket_address
+}
+
+deny contains msg if {
+	some bucket in input.resource_changes
+	bucket.type == "aws_s3_bucket"
+	not bucket_has_versioning(bucket.address)
+
+	msg := sprintf(
+		"CIS 2.1.2 VIOLATION: %s has no versioning configuration enabled.",
+		[bucket.address]
+	)
+}

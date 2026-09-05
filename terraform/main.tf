@@ -106,3 +106,12 @@ resource "aws_security_group" "compliant_sg_rdp" {
     cidr_blocks = ["10.0.0.0/16"]
   }
 }
+
+# versioning of bucket - avoids overwriting/deleting 
+resource "aws_s3_bucket_versioning" "compliant_bucket_versioning" {
+  bucket = aws_s3_bucket.compliant_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
