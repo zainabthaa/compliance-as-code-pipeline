@@ -16,6 +16,14 @@ jobs: # virtual machine
       - name: Checkout code
         uses: actions/checkout@v4 # use library to check the repo and clone into machine 
 
+      - name: Debug OIDC token claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const idToken = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
+            console.log(JSON.stringify(payload, null, 2));
+          
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4 # perform OIDC action 
         with:
