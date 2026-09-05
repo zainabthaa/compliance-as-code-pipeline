@@ -1,0 +1,11 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan.binary
+tfplan.json
+.terraform.lock.hcl
+
+# OS/editor junk
+.DS_Store
