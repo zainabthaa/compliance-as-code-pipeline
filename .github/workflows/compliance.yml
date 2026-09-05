@@ -1,0 +1,49 @@
+name: Compliance Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write # Github Identity OIDC token for AWS
+  contents: read
+
+jobs: # virtual machine
+  compliance: # name of machine
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # use library to check the repo and clone into machine 
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4 # perform OIDC action 
+        with:
+          role-to-assume: arn:aws:iam::243236149379:role/github-actions-terraform-plan # user ARN
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3 # install Terraform on machine 
+        with:
+          terraform_version: "1.16.0"
+      
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan -out=tfplan.binary
+
+      - name: Convert Plan to JSON
+        working-directory: ./terraform
+        run: terraform show -json tfplan.binary > tfplan.json
+
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/download/v0.69.0/conftest_0.69.0_Linux_x86_64.tar.gz
+          tar xzf conftest_0.69.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin
+
+      - name: Run Compliance Check (Conftest)
+        run: conftest test terraform/tfplan.json --policy policy/cis-aws
