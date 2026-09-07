@@ -34,6 +34,8 @@ jobs: # virtual machine
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -out=tfplan.binary
+        env:
+          TF_VAR_compliant_db_password: ${{ secrets.TF_VAR_compliant_db_password }}
 
       - name: Convert Plan to JSON
         working-directory: ./terraform
@@ -47,10 +49,3 @@ jobs: # virtual machine
 
       - name: Run Compliance Check (Conftest)
         run: conftest test terraform/tfplan.json --policy policy/cis-aws
-
-env:
-      - name: Terraform Plan
-        working-directory: ./terraform
-        run: terraform plan -out=tfplan.binary
-        env:
-          TF_VAR_compliant_db_password: ${{ secrets.TF_VAR_compliant_db_password }}
