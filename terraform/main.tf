@@ -115,3 +115,16 @@ resource "aws_s3_bucket_versioning" "compliant_bucket_versioning" {
     status = "Enabled"
   }
 }
+
+# EBS volume - hard drive on EC2 server
+resource "aws_ebs_volume" "insecure_volume" {
+  availability_zone = "us-east-1a"
+  size = 10
+  encrypted = false
+}
+
+resource "aws_ebs_volume" "compliant_volume" {
+  availability_zone = "us-east-1a"
+  size = 10
+  encrypted = true
+}
