@@ -6,6 +6,7 @@
 tfplan.binary
 tfplan.json
 .terraform.lock.hcl
+*.tfvars
 
 # OS/editor junk
 .DS_Store

@@ -128,3 +128,28 @@ resource "aws_ebs_volume" "compliant_volume" {
   size = 10
   encrypted = true
 }
+
+# relational database service
+resource "aws_db_instance" "insecure_db" {
+  identifier           = "insecure-db-${data.aws_caller_identity.current.account_id}"
+  allocated_storage    = 10
+  engine               = "mysql"
+  engine_version       = "8.0"
+  instance_class       = "db.t3.micro"
+  username             = "admin"
+  password             = "admin123!"
+  publicly_accessible  = true
+  skip_final_snapshot  = true
+}
+
+resource "aws_db_instance" "compliant_db" {
+  identifier          = "compliant-db-${data.aws_caller_identity.current.account_id}"
+  allocated_storage   = 10
+  engine              = "mysql"
+  engine_version      = "8.0"
+  instance_class      = "db.t3.micro"
+  username            = "admin"
+  password            = var.compliant_db_password # variables.tf
+  publicly_accessible = false
+  skip_final_snapshot = true
+}
