@@ -10,3 +10,14 @@ deny contains msg if {
 		[db.address],
 	)
 }
+
+deny contains msg if {
+	some db in input.resource_changes
+	db.type == "aws_db_instance"
+	db.change.after.storage_encrypted == false
+
+	msg := sprintf(
+		"CIS 2.3.3 VIOLATION: %s has unencrypted RDS storage.",
+		[db.address],
+	)
+}

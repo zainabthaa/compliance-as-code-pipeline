@@ -139,6 +139,7 @@ resource "aws_db_instance" "insecure_db" {
   username             = "admin"
   password             = "admin123!"
   publicly_accessible  = true
+  storage_encrypted    = false
   skip_final_snapshot  = true
 }
 
@@ -151,5 +152,37 @@ resource "aws_db_instance" "compliant_db" {
   username            = "admin"
   password            = var.compliant_db_password # variables.tf
   publicly_accessible = false
+  storage_encrypted   = true
   skip_final_snapshot = true
+}
+
+# IAM privileges
+resource "aws_iam_policy" "insecure_policy" {
+  name = "insecure-policy-${data.aws_caller_identity.current.account_id}"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "*"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "compliant_policy" {
+  name = "compliant-policy-${data.aws_caller_identity.current.account_id}"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject"]
+        Resource = "arn:aws:s3:::compliance-demo-compliant-${data.aws_caller_identity.current.account_id}/*"
+      }
+    ]
+  })
 }
