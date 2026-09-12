@@ -66,17 +66,17 @@ The interactive compliance dashboard for the current state of `main` — click a
 | Reporting | Python (Markdown report + interactive HTML dashboard) |
 
 ## Repository Structure
-
+```
 compliance-as-code-pipeline/
-├── terraform/ # Demo infrastructure (compliant + intentionally insecure)
-├── policy/cis-aws/ # Rego policies, one file per AWS resource area
+├── terraform/                  # Demo infrastructure (compliant + intentionally insecure)
+├── policy/cis-aws/             # Rego policies, one file per AWS resource area
 ├── scripts/
-│ ├── compliance_data.py # Shared logic: runs Conftest, reads the plan, builds pass/fail data
-│ ├── generate_report.py # Builds the Markdown report, sets CI pass/fail
-│ └── generate_dashboard.py # Builds the interactive HTML dashboard
+│   ├── compliance_data.py      # Shared logic: runs Conftest, reads the plan, builds pass/fail data
+│   ├── generate_report.py      # Builds the Markdown report, sets CI pass/fail
+│   └── generate_dashboard.py   # Builds the interactive HTML dashboard
 └── .github/workflows/
-└── compliance.yml # The CI pipeline itself
-
+    └── compliance.yml          # The CI pipeline itself
+```
 
 ## Running Locally
 
