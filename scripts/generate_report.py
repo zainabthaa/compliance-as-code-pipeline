@@ -7,6 +7,7 @@ violations it finds, and generates a human-readable Markdown report.
 
 import subprocess
 import json
+import sys
 from datetime import datetime, timezone
 
 
@@ -135,6 +136,8 @@ def main():
 
     print(f"Report generated: compliance-report.md ({len(violations)} violations found)")
 
+    if violations:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
