@@ -5,8 +5,10 @@ deny contains msg if {
 	res.type == "aws_db_instance"
 	res.expressions.password.constant_value
 
-	msg := sprintf(
-		"SECURITY VIOLATION: %s has a hardcoded plaintext password in source code.",
-		[res.address],
-	)
+	msg := {
+		"msg": sprintf("%s has a hardcoded plaintext password in source code.", [res.address]),
+		"control_id": "SECRET-1",
+		"resource": res.address,
+		"severity": "critical",
+	}
 }

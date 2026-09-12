@@ -6,10 +6,12 @@ deny contains msg if {
 	resource.type == "aws_s3_bucket_public_access_block"
 	resource.change.after.block_public_acls == false
 
-	msg := sprintf(
-		"CIS 2.1.5.1 VIOLATION: %s has block_public_acls = false. S3 buckets must block public access.",
-		[resource.address],
-	)
+	msg := {
+		"msg": sprintf("%s has block_public_acls = false. S3 buckets must block public access.", [resource.address]),
+		"control_id": "2.1.5.1",
+		"resource": resource.address,
+		"severity": "critical",
+	}
 }
 
 # check if server-side encryption enabled
@@ -27,10 +29,12 @@ deny contains msg if {
 	bucket.type == "aws_s3_bucket"
 	not bucket_has_encryption(bucket.address)
 
-	msg := sprintf(
-		"CIS 2.1.1 VIOLATION: %s has no server-side encryption configured.",
-		[bucket.address],
-	)
+	msg := {
+		"msg": sprintf("%s has no server-side encryption configured.",[bucket.address]),
+		"control_id": "2.1.1",
+		"resource": bucket.address,
+		"severity": "high",
+	}
 }
 
 # versioning compliant bucket
@@ -46,8 +50,10 @@ deny contains msg if {
 	bucket.type == "aws_s3_bucket"
 	not bucket_has_versioning(bucket.address)
 
-	msg := sprintf(
-		"CIS 2.1.2 VIOLATION: %s has no versioning configuration enabled.",
-		[bucket.address]
-	)
+	msg := { 
+		"msg": sprintf("%s has no versioning configuration enabled.", [bucket.address]),
+		"control_id": "2.1.2",
+		"resource": bucket.address,
+		"severity": "medium",
+	}
 }

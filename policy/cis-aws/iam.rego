@@ -10,8 +10,11 @@ deny contains msg if {
 	statement.Action == "*"
 	statement.Resource == "*"
 
-	msg := sprintf(
-		"IAM VIOLATION: %s grants wildcard Action=* and Resource=* (full admin access).",
-		[pol.address],
-	)
+	msg := {
+		"msg": sprintf("%s grants wildcard Action=* and Resource=* (full admin access).", [pol.address]),
+		"control_id": "IAM-1",
+		"resource": pol.address,
+		"severity": "high",
+
+	}
 }
