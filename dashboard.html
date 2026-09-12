@@ -7,83 +7,260 @@
         body { font-family: -apple-system, Arial, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; }
         h1 { color: #58a6ff; }
         .meta { color: #8b949e; margin-bottom: 1.5rem; }
-        .cards { display: flex; gap: 1rem; margin-bottom: 2rem; }
+        .cards { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; justify-content: center; }
         .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem 1.5rem; }
         .card .num { font-size: 2rem; font-weight: bold; }
         .card .label { color: #8b949e; font-size: 0.85rem; }
         table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
         th, td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid #30363d; }
         th { background: #21262d; }
-        .badge { padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .summary-row { cursor: pointer; }
+        .summary-row:hover { background: #1c2129; }
+        .arrow { display: inline-block; transition: transform 0.15s ease; color: #8b949e; }
+        .arrow.open { transform: rotate(90deg); }
+        .badge { padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; white-space: nowrap; }
         .badge.pass { background: #238636; color: white; }
         .badge.fail { background: #da3633; color: white; }
+        .mini-badge { padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: bold; margin-right: 0.4rem; }
+        .mini-badge.pass { background: #238636; color: white; }
+        .mini-badge.fail { background: #da3633; color: white; }
+        .detail-box { background: #0d1117; border-left: 3px solid #58a6ff; padding: 1rem 1.25rem; margin: 0.5rem 0; border-radius: 4px; }
+        .detail-box p { margin: 0.5rem 0; line-height: 1.5; }
+        .detail-box ul { margin: 0.25rem 0 0.5rem 0; list-style: none; padding-left: 0; }
+        .detail-box li { margin: 0.35rem 0; }
+        .detail-box code { background: #21262d; padding: 0.1rem 0.4rem; border-radius: 3px; }
     </style>
 </head>
 <body>
     <h1>Compliance Dashboard</h1>
-    <div class="meta">Generated: 2026-09-12 10:49 UTC</div>
+    <div class="meta">Generated: 2026-09-12 15:58 UTC &middot; Click any row to see per-resource details</div>
 
     <div class="cards">
-        <div class="card"><div class="num">10</div><div class="label">Total Controls</div></div>
-        <div class="card"><div class="num" style="color:#3fb950">0</div><div class="label">Passed</div></div>
+        <div class="card"><div class="num">24</div><div class="label">Total Checks</div></div>
+        <div class="card"><div class="num" style="color:#3fb950">14</div><div class="label">Passed</div></div>
         <div class="card"><div class="num" style="color:#f85149">10</div><div class="label">Failed</div></div>
         <div class="card"><div class="num" style="color:#f85149">5</div><div class="label">Critical</div></div>
         <div class="card"><div class="num" style="color:#d29922">4</div><div class="label">High</div></div>
     </div>
 
     <table>
-        <tr><th>Control ID</th><th>Title</th><th>Status</th></tr>
+        <tr><th></th><th>Control ID</th><th>Title</th><th>Status</th></tr>
         
-        <tr>
+        <tr class="summary-row" onclick="toggleRow('detail-0')">
+            <td><span class="arrow" id="arrow-0">&#9656;</span></td>
             <td>2.1.1</td>
             <td>S3 Bucket Server-Side Encryption</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-0" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Without encryption at rest, anyone who gains unauthorized access to the underlying storage can read the raw data directly.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_s3_bucket.insecure_bucket</code> — aws_s3_bucket.insecure_bucket has no server-side encryption configured.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Add an aws_s3_bucket_server_side_encryption_configuration resource for this bucket with sse_algorithm = "AES256".</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-1')">
+            <td><span class="arrow" id="arrow-1">&#9656;</span></td>
             <td>2.1.2</td>
             <td>S3 Bucket Versioning</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-1" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Without versioning, an accidental or malicious overwrite/delete permanently destroys the data — there is no way to recover a prior version.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_s3_bucket.insecure_bucket</code> — aws_s3_bucket.insecure_bucket has no versioning configuration enabled.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Add an aws_s3_bucket_versioning resource for this bucket with status = "Enabled".</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-2')">
+            <td><span class="arrow" id="arrow-2">&#9656;</span></td>
             <td>2.1.5.1</td>
             <td>S3 Block Public Access</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-2" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Disabling this safeguard means the bucket could be made publicly accessible, intentionally or by mistake, exposing its contents to the entire internet.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_s3_bucket_public_access_block.insecure_bucket_access</code> — aws_s3_bucket_public_access_block.insecure_bucket_access has block_public_acls = false. S3 buckets must block public access.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Set block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets to true.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-3')">
+            <td><span class="arrow" id="arrow-3">&#9656;</span></td>
             <td>2.3</td>
             <td>RDS Publicly Accessible</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-3" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> A database reachable directly from the internet is one of the most common real-world breach vectors — attackers actively scan for exposed databases.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_db_instance.insecure_db</code> — aws_db_instance.insecure_db is a publicly accessible RDS instance.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Set publicly_accessible = false on the RDS instance, and access it via a bastion host or VPN instead.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-4')">
+            <td><span class="arrow" id="arrow-4">&#9656;</span></td>
             <td>2.3.3</td>
             <td>RDS Storage Encryption</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-4" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Unencrypted database storage means raw data is readable if the underlying disk is ever accessed without authorization.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_db_instance.insecure_db</code> — aws_db_instance.insecure_db has unencrypted RDS storage.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Set storage_encrypted = true on the RDS instance.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-5')">
+            <td><span class="arrow" id="arrow-5">&#9656;</span></td>
             <td>5.2</td>
             <td>SSH Open to the Internet</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-5" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Port 22 open to 0.0.0.0/0 means anyone on the internet can attempt to log into the server — a constant, automated attack target.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_security_group.insecure_sg</code> — aws_security_group.insecure_sg allows SSH (port 22) ingress from 0.0.0.0/0 (entire internet).
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Restrict the security group's ingress CIDR block for port 22 to a specific internal range, not 0.0.0.0/0.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-6')">
+            <td><span class="arrow" id="arrow-6">&#9656;</span></td>
             <td>5.3</td>
             <td>RDP Open to the Internet</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-6" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> Same risk as SSH exposure, but for Windows remote desktop access — a very common ransomware entry point in real-world breaches.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_security_group.insecure_sg_rdp</code> — aws_security_group.insecure_sg_rdp allows RDP (port 3389) ingress from 0.0.0.0/0 (entire internet).
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Restrict the security group's ingress CIDR block for port 3389 to a specific internal range, not 0.0.0.0/0.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-7')">
+            <td><span class="arrow" id="arrow-7">&#9656;</span></td>
             <td>EBS-1</td>
             <td>EBS Volume Encryption</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-7" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> An unencrypted disk volume exposes raw data if the volume is ever improperly detached, snapshotted, or accessed outside its intended instance.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_ebs_volume.insecure_volume</code> — aws_ebs_volume.insecure_volume is an unencrypted EBS volume.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Set encrypted = true on the EBS volume.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-8')">
+            <td><span class="arrow" id="arrow-8">&#9656;</span></td>
             <td>IAM-1</td>
             <td>IAM Wildcard Policy</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
-        <tr>
+        <tr class="detail-row" id="detail-8" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> A policy granting Action="*" and Resource="*" gives full administrative control over the entire AWS account to anything using it — a single compromised credential means total account takeover.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_iam_policy.insecure_policy</code> — aws_iam_policy.insecure_policy grants wildcard Action=* and Resource=* (full admin access).
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Scope the policy's Action and Resource fields to only the specific permissions needed, instead of "*".</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="summary-row" onclick="toggleRow('detail-9')">
+            <td><span class="arrow" id="arrow-9">&#9656;</span></td>
             <td>SECRET-1</td>
             <td>Hardcoded Credentials</td>
             <td><span class="badge fail">FAIL</span></td>
         </tr>
+        <tr class="detail-row" id="detail-9" style="display: none;">
+            <td colspan="4">
+                <div class="detail-box">
+                    <p><strong>Why this matters:</strong> A password committed directly in source code is visible to anyone with repo access, remains in Git history forever even if later removed, and is a leading cause of real-world credential leaks.</p>
+                    <p><strong>Resources checked:</strong></p>
+                    <ul>
+                <li>
+                    <span class="mini-badge fail">FAIL</span>
+                    <code>aws_db_instance.insecure_db</code> — aws_db_instance.insecure_db has a hardcoded plaintext password in source code.
+                </li></ul>
+                    <p><strong>How to fix it:</strong> Move the password into a Terraform variable marked sensitive = true, supplied via .tfvars (gitignored) or a secrets manager.</p>
+                </div>
+            </td>
+        </tr>
     </table>
+
+    <script>
+        function toggleRow(rowId) {
+            const row = document.getElementById(rowId);
+            const index = rowId.split('-')[1];
+            const arrow = document.getElementById('arrow-' + index);
+            if (row.style.display === 'none') {
+                row.style.display = 'table-row';
+                arrow.classList.add('open');
+            } else {
+                row.style.display = 'none';
+                arrow.classList.remove('open');
+            }
+        }
+    </script>
 </body>
 </html>
