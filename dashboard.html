@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Compliance Dashboard</title>
+    <style>
+        body { font-family: -apple-system, Arial, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; }
+        h1 { color: #58a6ff; }
+        .meta { color: #8b949e; margin-bottom: 1.5rem; }
+        .cards { display: flex; gap: 1rem; margin-bottom: 2rem; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem 1.5rem; }
+        .card .num { font-size: 2rem; font-weight: bold; }
+        .card .label { color: #8b949e; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+        th, td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid #30363d; }
+        th { background: #21262d; }
+        .badge { padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .badge.pass { background: #238636; color: white; }
+        .badge.fail { background: #da3633; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Compliance Dashboard</h1>
+    <div class="meta">Generated: 2026-09-12 10:49 UTC</div>
+
+    <div class="cards">
+        <div class="card"><div class="num">10</div><div class="label">Total Controls</div></div>
+        <div class="card"><div class="num" style="color:#3fb950">0</div><div class="label">Passed</div></div>
+        <div class="card"><div class="num" style="color:#f85149">10</div><div class="label">Failed</div></div>
+        <div class="card"><div class="num" style="color:#f85149">5</div><div class="label">Critical</div></div>
+        <div class="card"><div class="num" style="color:#d29922">4</div><div class="label">High</div></div>
+    </div>
+
+    <table>
+        <tr><th>Control ID</th><th>Title</th><th>Status</th></tr>
+        
+        <tr>
+            <td>2.1.1</td>
+            <td>S3 Bucket Server-Side Encryption</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>2.1.2</td>
+            <td>S3 Bucket Versioning</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>2.1.5.1</td>
+            <td>S3 Block Public Access</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>2.3</td>
+            <td>RDS Publicly Accessible</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>2.3.3</td>
+            <td>RDS Storage Encryption</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>5.2</td>
+            <td>SSH Open to the Internet</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>5.3</td>
+            <td>RDP Open to the Internet</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>EBS-1</td>
+            <td>EBS Volume Encryption</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>IAM-1</td>
+            <td>IAM Wildcard Policy</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+        <tr>
+            <td>SECRET-1</td>
+            <td>Hardcoded Credentials</td>
+            <td><span class="badge fail">FAIL</span></td>
+        </tr>
+    </table>
+</body>
+</html>
