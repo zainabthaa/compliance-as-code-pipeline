@@ -58,9 +58,20 @@ jobs: # virtual machine
       - name: Generate Compliance Report
         run: python3 scripts/generate_report.py
 
+      - name: Generate Compliance Dashboard
+        if: always()
+        run: python3 scripts/generate_dashboard.py
+
       - name: Upload Compliance Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance-report
           path: compliance-report.md
+
+      - name: Upload Compliance Dashboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-dashboard
+          path: dashboard.html
