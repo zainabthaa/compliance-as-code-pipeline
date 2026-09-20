@@ -1,160 +1,180 @@
 """
 Shared logic for running Conftest and processing compliance results.
 Used by both generate_report.py and generate_dashboard.py.
+
+Control metadata (title, severity, risk, remediation, which Terraform resource
+types a control applies to) lives in controls/controls.json - the single source
+of truth. The Rego policies decide PASS/FAIL; this file only reads results.
 """
 
-import subprocess
 import json
+import re
+import subprocess
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CONTROLS_FILE = REPO_ROOT / "controls" / "controls.json"
+PLAN_JSON = REPO_ROOT / "terraform" / "tfplan.json"
+POLICY_DIR = REPO_ROOT / "policy" / "cis-aws"
 
 
-REMEDIATION_DB = {
-    "2.1.1": {
-        "title": "S3 Bucket Server-Side Encryption",
-        "risk": "Without encryption at rest, anyone who gains unauthorized access to the underlying storage can read the raw data directly.",
-        "remediation": "Add an aws_s3_bucket_server_side_encryption_configuration resource for this bucket with sse_algorithm = \"AES256\".",
-    },
-    "2.1.2": {
-        "title": "S3 Bucket Versioning",
-        "risk": "Without versioning, an accidental or malicious overwrite/delete permanently destroys the data — there is no way to recover a prior version.",
-        "remediation": "Add an aws_s3_bucket_versioning resource for this bucket with status = \"Enabled\".",
-    },
-    "2.1.5.1": {
-        "title": "S3 Block Public Access",
-        "risk": "Disabling this safeguard means the bucket could be made publicly accessible, intentionally or by mistake, exposing its contents to the entire internet.",
-        "remediation": "Set block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets to true.",
-    },
-    "2.3": {
-        "title": "RDS Publicly Accessible",
-        "risk": "A database reachable directly from the internet is one of the most common real-world breach vectors — attackers actively scan for exposed databases.",
-        "remediation": "Set publicly_accessible = false on the RDS instance, and access it via a bastion host or VPN instead.",
-    },
-    "2.3.3": {
-        "title": "RDS Storage Encryption",
-        "risk": "Unencrypted database storage means raw data is readable if the underlying disk is ever accessed without authorization.",
-        "remediation": "Set storage_encrypted = true on the RDS instance.",
-    },
-    "5.2": {
-        "title": "SSH Open to the Internet",
-        "risk": "Port 22 open to 0.0.0.0/0 means anyone on the internet can attempt to log into the server — a constant, automated attack target.",
-        "remediation": "Restrict the security group's ingress CIDR block for port 22 to a specific internal range, not 0.0.0.0/0.",
-    },
-    "5.3": {
-        "title": "RDP Open to the Internet",
-        "risk": "Same risk as SSH exposure, but for Windows remote desktop access — a very common ransomware entry point in real-world breaches.",
-        "remediation": "Restrict the security group's ingress CIDR block for port 3389 to a specific internal range, not 0.0.0.0/0.",
-    },
-    "EBS-1": {
-        "title": "EBS Volume Encryption",
-        "risk": "An unencrypted disk volume exposes raw data if the volume is ever improperly detached, snapshotted, or accessed outside its intended instance.",
-        "remediation": "Set encrypted = true on the EBS volume.",
-    },
-    "IAM-1": {
-        "title": "IAM Wildcard Policy",
-        "risk": "A policy granting Action=\"*\" and Resource=\"*\" gives full administrative control over the entire AWS account to anything using it — a single compromised credential means total account takeover.",
-        "remediation": "Scope the policy's Action and Resource fields to only the specific permissions needed, instead of \"*\".",
-    },
-    "SECRET-1": {
-        "title": "Hardcoded Credentials",
-        "risk": "A password committed directly in source code is visible to anyone with repo access, remains in Git history forever even if later removed, and is a leading cause of real-world credential leaks.",
-        "remediation": "Move the password into a Terraform variable marked sensitive = true, supplied via .tfvars (gitignored) or a secrets manager.",
-    },
-}
+class ComplianceToolError(Exception):
+    """Something is wrong with the tooling/inputs (NOT a compliance violation)."""
 
 
-CONTROL_RESOURCE_TYPE = {
-    "2.1.1": "aws_s3_bucket",
-    "2.1.2": "aws_s3_bucket",
-    "2.1.5.1": "aws_s3_bucket_public_access_block",
-    "2.3": "aws_db_instance",
-    "2.3.3": "aws_db_instance",
-    "5.2": "aws_security_group",
-    "5.3": "aws_security_group",
-    "EBS-1": "aws_ebs_volume",
-    "IAM-1": "aws_iam_policy",
-    "SECRET-1": "aws_db_instance",
-}
+def load_controls(path=CONTROLS_FILE):
+    """Load controls.json and return {control_id: {...}} preserving file order."""
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise ComplianceToolError(f"Controls file not found: {path}")
+    except json.JSONDecodeError as e:
+        raise ComplianceToolError(f"Controls file {path} is not valid JSON: {e}")
+    return {c["id"]: c for c in data["controls"]}
 
 
-def load_plan_json(path="terraform/tfplan.json"):
-    """Load the raw Terraform plan JSON directly (needed to enumerate ALL resources, not just violations)."""
-    with open(path) as f:
-        return json.load(f)
+CONTROLS = load_controls()
 
 
-def get_resources_by_type(plan_json, resource_type):
-    """Return a list of resource addresses for every resource of the given type in the plan."""
+def load_plan_json(path=PLAN_JSON):
+    """Load the raw Terraform plan JSON (needed to enumerate ALL resources, not just violations)."""
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise ComplianceToolError(
+            f"Terraform plan JSON not found at {path}. Run "
+            "'terraform plan -out=tfplan.binary && terraform show -json tfplan.binary > tfplan.json' "
+            "inside the terraform/ directory first."
+        )
+    except json.JSONDecodeError as e:
+        raise ComplianceToolError(f"{path} is not valid JSON: {e}")
+
+
+def strip_index(address):
+    """aws_s3_bucket.b["x"] -> aws_s3_bucket.b (count/for_each indexes removed)."""
+    return re.sub(r"\[[^\]]*\]", "", address)
+
+
+def get_resources_by_type(plan_json, resource_types):
+    """Return the addresses of every resource in the plan whose type is in resource_types."""
+    wanted = set(resource_types)
     return [
         r["address"]
         for r in plan_json.get("resource_changes", [])
-        if r["type"] == resource_type
+        if r["type"] in wanted
     ]
 
 
-def build_resource_control_summary(plan_json, violations):
+def run_conftest(plan_path=PLAN_JSON, policy_dir=POLICY_DIR):
+    """Run Conftest against the plan JSON and return the parsed JSON output.
+
+    Conftest exit codes: 0 = no failures, 1 = policy failures. Anything else
+    (or unparseable output) means the tool itself broke, which must NOT be
+    mistaken for "compliant" or reported as a Python traceback.
     """
-    Return a list of {control_id, title, resource, status} for every
-    (control, resource) pair that applies - i.e. every resource of the
-    control's target type, whether it passed or failed.
-    """
-    failed_by_control = {}
-    for v in violations:
-        failed_by_control.setdefault(v["control_id"], set()).add(v["resource"])
+    if not Path(plan_path).exists():
+        # produces the friendly "how to generate the plan" message
+        load_plan_json(plan_path)
 
-    summary = []
-    for control_id, info in REMEDIATION_DB.items():
-        resource_type = CONTROL_RESOURCE_TYPE.get(control_id)
-        if resource_type is None:
-            continue
+    try:
+        result = subprocess.run(
+            ["conftest", "test", str(plan_path), "--policy", str(policy_dir), "--output", "json"],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        raise ComplianceToolError(
+            "The 'conftest' binary was not found on PATH. Install it from https://www.conftest.dev/install/"
+        )
 
-        resources = get_resources_by_type(plan_json, resource_type)
-        failed_resources = failed_by_control.get(control_id, set())
-
-        for resource_address in resources:
-            summary.append({
-                "control_id": control_id,
-                "title": info["title"],
-                "resource": resource_address,
-                "status": "FAIL" if resource_address in failed_resources else "PASS",
-            })
-    return summary
-
-def run_conftest():
-    """Run Conftest against the plan JSON and return the parsed JSON output."""
-    result = subprocess.run(
-        [
-            "conftest", "test", "terraform/tfplan.json",
-            "--policy", "policy/cis-aws",
-            "--output", "json",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    return json.loads(result.stdout)
+    if result.returncode not in (0, 1):
+        raise ComplianceToolError(
+            f"Conftest failed (exit code {result.returncode}):\n{result.stderr.strip() or result.stdout.strip()}"
+        )
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        raise ComplianceToolError(
+            "Conftest did not return valid JSON.\n"
+            f"stdout: {result.stdout.strip()[:500]}\nstderr: {result.stderr.strip()[:500]}"
+        )
 
 
 def parse_violations(conftest_output):
-    """Flatten Conftest's output into a simple list of violation dicts."""
+    """Flatten Conftest's output into a de-duplicated list of violation dicts."""
     violations = []
+    seen = set()
     for file_result in conftest_output:
         for failure in file_result.get("failures", []):
+            meta = failure.get("metadata") or {}
+            missing = {"control_id", "resource", "severity"} - meta.keys()
+            if missing:
+                raise ComplianceToolError(
+                    f"A policy returned a violation without required fields {sorted(missing)}: "
+                    f"{failure.get('msg')!r}. Every deny rule must emit "
+                    "{msg, control_id, resource, severity}."
+                )
+            key = (meta["control_id"], meta["resource"])
+            if key in seen:
+                continue
+            seen.add(key)
             violations.append({
-                "control_id": failure["metadata"]["control_id"],
-                "resource": failure["metadata"]["resource"],
-                "severity": failure["metadata"]["severity"],
+                "control_id": meta["control_id"],
+                "resource": meta["resource"],
+                "severity": meta["severity"],
                 "reason": failure["msg"],
             })
     return violations
 
 
+def build_resource_control_summary(plan_json, violations):
+    """
+    Return a list of {control_id, title, resource, status} for every
+    (control, resource) pair that applies - every resource of a control's target
+    types, whether it passed or failed. Violations on resources outside those
+    types (or from a control missing in controls.json) are still included as FAIL
+    so a violation can never silently disappear from the dashboard.
+    """
+    failed = {}
+    for v in violations:
+        failed.setdefault(v["control_id"], set()).add(strip_index(v["resource"]))
+
+    summary = []
+    for control_id, info in CONTROLS.items():
+        seen = set()
+        for address in get_resources_by_type(plan_json, info["resource_types"]):
+            seen.add(strip_index(address))
+            summary.append({
+                "control_id": control_id,
+                "title": info["title"],
+                "resource": address,
+                "status": "FAIL" if strip_index(address) in failed.get(control_id, set()) else "PASS",
+            })
+        for address in sorted(failed.get(control_id, set()) - seen):
+            summary.append({
+                "control_id": control_id,
+                "title": info["title"],
+                "resource": address,
+                "status": "FAIL",
+            })
+
+    for control_id in sorted(set(failed) - set(CONTROLS)):
+        for address in sorted(failed[control_id]):
+            summary.append({
+                "control_id": control_id,
+                "title": "Unknown Control",
+                "resource": address,
+                "status": "FAIL",
+            })
+    return summary
+
+
 def build_control_summary(violations):
     """Return a list of {control_id, title, status} for every known control."""
     failed_ids = {v["control_id"] for v in violations}
-
-    summary = []
-    for control_id, info in REMEDIATION_DB.items():
-        summary.append({
-            "control_id": control_id,
-            "title": info["title"],
-            "status": "FAIL" if control_id in failed_ids else "PASS",
-        })
-    return summary
+    return [
+        {"control_id": cid, "title": info["title"], "status": "FAIL" if cid in failed_ids else "PASS"}
+        for cid, info in CONTROLS.items()
+    ]

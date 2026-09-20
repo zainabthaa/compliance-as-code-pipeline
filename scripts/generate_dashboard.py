@@ -2,13 +2,17 @@
 Generates the static HTML compliance dashboard.
 """
 
+import sys
 from datetime import datetime, timezone
+from html import escape
+
 from compliance_data import (
     run_conftest,
     parse_violations,
     load_plan_json,
     build_resource_control_summary,
-    REMEDIATION_DB,
+    CONTROLS,
+    ComplianceToolError,
 )
 
 
@@ -34,10 +38,10 @@ def build_dashboard(violations, resource_control_summary):
 
     rows_html = ""
     for i, (control_id, entries) in enumerate(grouped.items()):
-        info = REMEDIATION_DB.get(control_id, {})
-        title = info.get("title", "Unknown Control")
-        risk = info.get("risk", "No risk description available.")
-        remediation = info.get("remediation", "No remediation guidance available.")
+        info = CONTROLS.get(control_id, {})
+        title = escape(info.get("title", "Unknown Control"))
+        risk = escape(info.get("risk", "No risk description available."))
+        remediation = escape(info.get("remediation", "No remediation guidance available."))
 
         fail_count = sum(1 for e in entries if e["status"] == "FAIL")
 
@@ -58,7 +62,7 @@ def build_dashboard(violations, resource_control_summary):
                 resource_items += f"""
                 <li>
                     <span class="mini-badge fail">FAIL</span>
-                    <code>{e['resource']}</code> — {reason}
+                    <code>{escape(e['resource'])}</code> — {escape(reason)}
                 </li>"""
         else:
             resource_items = "<li>All resources passed this control.</li>"
@@ -68,7 +72,7 @@ def build_dashboard(violations, resource_control_summary):
         rows_html += f"""
         <tr class="summary-row" onclick="toggleRow('{row_id}')">
             <td><span class="arrow" id="arrow-{i}">&#9656;</span></td>
-            <td>{control_id}</td>
+            <td>{escape(control_id)}</td>
             <td>{title}</td>
             <td><span class="badge {badge_class}">{badge_label}</span></td>
         </tr>"""
@@ -156,9 +160,13 @@ def build_dashboard(violations, resource_control_summary):
 
 
 def main():
-    conftest_output = run_conftest()
-    violations = parse_violations(conftest_output)
-    plan_json = load_plan_json()
+    try:
+        conftest_output = run_conftest()
+        violations = parse_violations(conftest_output)
+        plan_json = load_plan_json()
+    except ComplianceToolError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(2)
     resource_control_summary = build_resource_control_summary(plan_json, violations)
 
     dashboard_html = build_dashboard(violations, resource_control_summary)

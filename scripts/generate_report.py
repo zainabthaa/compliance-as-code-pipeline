@@ -4,7 +4,7 @@ Generates the Markdown compliance report and sets CI pass/fail.
 
 import sys
 from datetime import datetime, timezone
-from compliance_data import run_conftest, parse_violations, REMEDIATION_DB
+from compliance_data import run_conftest, parse_violations, CONTROLS, ComplianceToolError
 
 
 def build_report(violations):
@@ -35,7 +35,7 @@ def build_report(violations):
 
     lines.append("\n## Details & Remediation\n")
     for v in violations_sorted:
-        info = REMEDIATION_DB.get(v["control_id"], {})
+        info = CONTROLS.get(v["control_id"], {})
         if not info:
             print(f"WARNING: no remediation entry found for control_id '{v['control_id']}'")
         title = info.get("title", "Unknown Control")
@@ -51,8 +51,13 @@ def build_report(violations):
 
 
 def main():
-    conftest_output = run_conftest()
-    violations = parse_violations(conftest_output)
+    try:
+        conftest_output = run_conftest()
+        violations = parse_violations(conftest_output)
+    except ComplianceToolError as e:
+        # exit code 2 = the tooling broke; exit code 1 = real compliance violations
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(2)
     report = build_report(violations)
 
     with open("compliance-report.md", "w") as f:

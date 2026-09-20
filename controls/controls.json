@@ -1,0 +1,112 @@
+{
+  "controls": [
+    {
+      "id": "2.1.1",
+      "title": "S3 Bucket Server-Side Encryption",
+      "severity": "high",
+      "resource_types": [
+        "aws_s3_bucket"
+      ],
+      "risk": "Without encryption at rest, anyone who gains unauthorized access to the underlying storage can read the raw data directly.",
+      "remediation": "Add an aws_s3_bucket_server_side_encryption_configuration resource for this bucket with sse_algorithm = \"AES256\"."
+    },
+    {
+      "id": "2.1.2",
+      "title": "S3 Bucket Versioning",
+      "severity": "medium",
+      "resource_types": [
+        "aws_s3_bucket"
+      ],
+      "risk": "Without versioning, an accidental or malicious overwrite/delete permanently destroys the data — there is no way to recover a prior version.",
+      "remediation": "Add an aws_s3_bucket_versioning resource for this bucket with status = \"Enabled\"."
+    },
+    {
+      "id": "2.1.5.1",
+      "title": "S3 Block Public Access",
+      "severity": "critical",
+      "resource_types": [
+        "aws_s3_bucket_public_access_block"
+      ],
+      "risk": "Disabling this safeguard means the bucket could be made publicly accessible, intentionally or by mistake, exposing its contents to the entire internet.",
+      "remediation": "Set block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets to true."
+    },
+    {
+      "id": "2.3",
+      "title": "RDS Publicly Accessible",
+      "severity": "critical",
+      "resource_types": [
+        "aws_db_instance"
+      ],
+      "risk": "A database reachable directly from the internet is one of the most common real-world breach vectors — attackers actively scan for exposed databases.",
+      "remediation": "Set publicly_accessible = false on the RDS instance, and access it via a bastion host or VPN instead."
+    },
+    {
+      "id": "2.3.3",
+      "title": "RDS Storage Encryption",
+      "severity": "high",
+      "resource_types": [
+        "aws_db_instance"
+      ],
+      "risk": "Unencrypted database storage means raw data is readable if the underlying disk is ever accessed without authorization.",
+      "remediation": "Set storage_encrypted = true on the RDS instance."
+    },
+    {
+      "id": "5.2",
+      "title": "SSH Open to the Internet",
+      "severity": "critical",
+      "resource_types": [
+        "aws_security_group",
+        "aws_security_group_rule",
+        "aws_vpc_security_group_ingress_rule"
+      ],
+      "risk": "Port 22 open to 0.0.0.0/0 means anyone on the internet can attempt to log into the server — a constant, automated attack target.",
+      "remediation": "Restrict the security group's ingress CIDR block for port 22 to a specific internal range, not 0.0.0.0/0."
+    },
+    {
+      "id": "5.3",
+      "title": "RDP Open to the Internet",
+      "severity": "critical",
+      "resource_types": [
+        "aws_security_group",
+        "aws_security_group_rule",
+        "aws_vpc_security_group_ingress_rule"
+      ],
+      "risk": "Same risk as SSH exposure, but for Windows remote desktop access — a very common ransomware entry point in real-world breaches.",
+      "remediation": "Restrict the security group's ingress CIDR block for port 3389 to a specific internal range, not 0.0.0.0/0."
+    },
+    {
+      "id": "EBS-1",
+      "title": "EBS Volume Encryption",
+      "severity": "high",
+      "resource_types": [
+        "aws_ebs_volume"
+      ],
+      "risk": "An unencrypted disk volume exposes raw data if the volume is ever improperly detached, snapshotted, or accessed outside its intended instance.",
+      "remediation": "Set encrypted = true on the EBS volume."
+    },
+    {
+      "id": "IAM-1",
+      "title": "IAM Wildcard Policy",
+      "severity": "high",
+      "resource_types": [
+        "aws_iam_policy",
+        "aws_iam_role_policy",
+        "aws_iam_user_policy",
+        "aws_iam_group_policy"
+      ],
+      "risk": "A policy granting Action=\"*\" and Resource=\"*\" gives full administrative control over the entire AWS account to anything using it — a single compromised credential means total account takeover.",
+      "remediation": "Scope the policy's Action and Resource fields to only the specific permissions needed, instead of \"*\"."
+    },
+    {
+      "id": "SECRET-1",
+      "title": "Hardcoded Credentials",
+      "severity": "critical",
+      "resource_types": [
+        "aws_db_instance",
+        "aws_secretsmanager_secret_version"
+      ],
+      "risk": "A password committed directly in source code is visible to anyone with repo access, remains in Git history forever even if later removed, and is a leading cause of real-world credential leaks.",
+      "remediation": "Move the password into a Terraform variable marked sensitive = true, supplied via .tfvars (gitignored) or a secrets manager."
+    }
+  ]
+}
