@@ -1,5 +1,9 @@
 package main
 
+# RDS = managed databases on AWS.
+
+# a database must not be reachable from the internet.
+# fails when publicly_accessible = true.
 deny contains msg if {
 	some db in input.resource_changes
 	db.type == "aws_db_instance"
@@ -13,6 +17,8 @@ deny contains msg if {
 	}
 }
 
+# database storage must be encrypted.
+# fails when storage_encrypted = false.
 deny contains msg if {
 	some db in input.resource_changes
 	db.type == "aws_db_instance"

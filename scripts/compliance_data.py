@@ -50,8 +50,8 @@ REMEDIATION_DB = {
     },
     "IAM-1": {
         "title": "IAM Wildcard Policy",
-        "risk": "A policy granting Action=\"*\" and Resource=\"*\" gives full administrative control over the entire AWS account to anything using it — a single compromised credential means total account takeover.",
-        "remediation": "Scope the policy's Action and Resource fields to only the specific permissions needed, instead of \"*\".",
+        "risk": "A policy that allows a wildcard action (\"*\" or a whole service such as \"s3:*\") on Resource \"*\" gives broad or full control to anything using it — one compromised credential can mean total account takeover.",
+        "remediation": "List only the specific actions needed (for example \"s3:GetObject\") and the specific resource ARNs, instead of wildcards.",
     },
     "SECRET-1": {
         "title": "Hardcoded Credentials",

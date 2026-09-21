@@ -12,14 +12,21 @@ Compliance checks in most organizations happen too late — a security team manu
 
 ## How It Works
 
-Terraform (.tf)
-→ terraform plan
-→ JSON plan output
-→ Conftest evaluates Rego policies against the plan
-→ Python generates a Markdown report + interactive HTML dashboard
-→ GitHub Actions fails the check if any control is violated
-→ Branch protection blocks the merge
+```mermaid
+flowchart LR
+    A["Pull request / push to main"] --> B["GitHub Actions starts"]
+    B --> C["Log in to AWS<br/>(OIDC, no stored keys)"]
+    C --> D["terraform plan<br/>(nothing is deployed)"]
+    D --> E["Plan saved as JSON"]
+    E --> F{"Conftest checks the plan<br/>against the Rego policies"}
+    F --> G["Python builds<br/>report + dashboard"]
+    G --> H{"Any violation?"}
+    H -- "No" --> I["Check passes<br/>merge allowed"]
+    H -- "Yes" --> J["Check fails<br/>merge blocked"]
+    G --> K["Report + dashboard<br/>saved as artifacts"]
+```
 
+In words: the pipeline turns your Terraform into a plan, checks that plan against the rules, writes a report, and fails the check if any rule is broken. Branch protection then blocks the merge.
 
 Every step runs automatically in GitHub Actions on every pull request, using **OIDC federation** to authenticate to AWS — no long-lived AWS credentials are stored anywhere in this repository or in GitHub Secrets for the AWS role itself.
 
@@ -37,7 +44,7 @@ Each control is checked against **every applicable resource in the plan**, not j
 | 5.2 | SSH Open to the Internet | Critical |
 | 5.3 | RDP Open to the Internet | Critical |
 | EBS-1 | EBS Volume Encryption | High |
-| IAM-1 | IAM Wildcard Policy (`Action: "*"`, `Resource: "*"`) | High |
+| IAM-1 | IAM Wildcard Policy (`Action` of `"*"` or `"service:*"` with `Resource: "*"`, for `Allow` statements) | High |
 | SECRET-1 | Hardcoded Credentials in Terraform Source | Critical |
 
 Controls prefixed with a number (e.g. `2.1.1`, `5.2`) map directly to the CIS AWS Foundations Benchmark. `EBS-1`, `IAM-1`, and `SECRET-1` are additional security best-practice checks not tied to a specific CIS control number.
@@ -53,6 +60,34 @@ A real pull request, blocked by this pipeline because a required check failed:
 The interactive compliance dashboard for the current state of `main` — click any control to see exactly which resource failed, why, and how to fix it:
 
 ![Dashboard](docs/dashboard.png)
+
+## Setup
+
+To run the pipeline on your own fork you need to configure three things.
+
+**1. Repository variable `AWS_ROLE_ARN`**
+
+The role the pipeline assumes, kept out of the code. In GitHub: **Settings → Secrets and variables → Actions → Variables → New repository variable**, name `AWS_ROLE_ARN`, value = your role's ARN.
+
+**2. Repository secret `TF_VAR_compliant_db_password`**
+
+The demo database password, under **Secrets** on the same page.
+
+**3. Lock the role's trust policy to this repository**
+
+Without this, another repository could assume your role. The role's trust policy should only allow your repo:
+
+```json
+{
+  "Effect": "Allow",
+  "Principal": { "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com" },
+  "Action": "sts:AssumeRoleWithWebIdentity",
+  "Condition": {
+    "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+    "StringLike":   { "token.actions.githubusercontent.com:sub": "repo:zainabthaa/compliance-as-code-pipeline:*" }
+  }
+}
+```
 
 ## Tech Stack
 
@@ -74,24 +109,36 @@ compliance-as-code-pipeline/
 │   ├── compliance_data.py      # Shared logic: runs Conftest, reads the plan, builds pass/fail data
 │   ├── generate_report.py      # Builds the Markdown report, sets CI pass/fail
 │   └── generate_dashboard.py   # Builds the interactive HTML dashboard
-└── .github/workflows/
-    └── compliance.yml          # The CI pipeline itself
+├── .github/workflows/
+│   └── compliance.yml          # The CI pipeline itself
+├── Makefile                    # Shortcuts: make plan / check / all / clean
+└── LICENSE                     # MIT
 ```
 
 ## Running Locally
 
 Requires: [Terraform](https://developer.hashicorp.com/terraform/install), [OPA](https://www.openpolicyagent.org/docs/latest/#running-opa), [Conftest](https://www.conftest.dev/install/), Python 3, and AWS credentials with S3/RDS/IAM/EBS read access.
 
-```bash
-cd terraform
-terraform init
-terraform plan -out=tfplan.binary
-terraform show -json tfplan.binary > tfplan.json
-cd ..
+The [Makefile](Makefile) wraps every step, so you don't have to remember the commands:
 
-python3 scripts/generate_report.py       # → compliance-report.md, sets exit code
-python3 scripts/generate_dashboard.py    # → dashboard.html
+```bash
+make plan        # terraform plan -> terraform/tfplan.json (needs AWS login)
+make check       # check the plan against the policies (Conftest)
+make all         # write compliance-report.md and dashboard.html
+open dashboard.html
 ```
+
+| Command | What it does |
+|---|---|
+| `make help` | List all commands |
+| `make plan` | Run Terraform and save the plan as JSON |
+| `make check` | Run the policies on the plan and list failures |
+| `make report` | Write `compliance-report.md` (exits with an error if any violation is found) |
+| `make dashboard` | Write `dashboard.html` |
+| `make all` | Report + dashboard (the dashboard is built even when violations are found) |
+| `make clean` | Delete the generated files |
+
+On the demo infrastructure, `make check` and `make report` finish with an error. That is expected: the insecure demo resources violate the controls, which is exactly what makes the CI check fail.
 
 ## What's Next
 
