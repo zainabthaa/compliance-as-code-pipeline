@@ -15,15 +15,14 @@ Compliance checks in most organizations happen too late — a security team manu
 ```mermaid
 flowchart LR
     A["Pull request / push to main"] --> B["GitHub Actions starts"]
-    B --> C["Log in to AWS<br/>(OIDC, no stored keys)"]
-    C --> D["terraform plan<br/>(nothing is deployed)"]
-    D --> E["Plan saved as JSON"]
-    E --> F{"Conftest checks the plan<br/>against the Rego policies"}
-    F --> G["Python builds<br/>report + dashboard"]
-    G --> H{"Any violation?"}
-    H -- "No" --> I["Check passes<br/>merge allowed"]
-    H -- "Yes" --> J["Check fails<br/>merge blocked"]
-    G --> K["Report + dashboard<br/>saved as artifacts"]
+    B --> C["terraform plan<br/>(nothing is deployed)"]
+    C --> D["Plan saved as JSON"]
+    D --> E{"Conftest checks the plan<br/>against the Rego policies"}
+    E --> F["Python builds<br/>report + dashboard"]
+    F --> G{"Any violation?"}
+    G -- "No" --> H["Check passes<br/>merge allowed"]
+    G -- "Yes" --> I["Check fails<br/>merge blocked"]
+    I --> J["Report + dashboard<br/>saved as artifacts"]
 ```
 
 In words: the pipeline turns your Terraform into a plan, checks that plan against the rules, writes a report, and fails the check if any rule is broken. Branch protection then blocks the merge.
