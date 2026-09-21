@@ -1,0 +1,12 @@
+{
+  "_comment": "Approved exceptions. Each needs control_id, resource (exact address), owner, reason, expires (YYYY-MM-DD). Expired waivers stop applying and the finding blocks again. Changes go through pull request review.",
+  "waivers": [
+    {
+      "control_id": "S3-ENC-1",
+      "resource": "aws_s3_bucket.insecure_bucket",
+      "owner": "zainab",
+      "reason": "DEMO waiver: shows how an approved, time-boxed exception appears in the report and dashboard",
+      "expires": "2026-12-31"
+    }
+  ]
+}

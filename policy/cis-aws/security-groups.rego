@@ -1,14 +1,16 @@
 package main
 
-# 5.2 / 5.3: SSH (22) and RDP (3389) must not be reachable from the internet.
-#  - IPv6 (::/0) is treated as "the internet" too
+# CIS AWS v5.0.0 5.3 / 5.4: remote server administration ports (SSH 22, RDP 3389)
+# must not be reachable from the internet.
+#   5.3 = IPv4 (0.0.0.0/0)      5.4 = IPv6 (::/0)
+# The same rule can raise both if it opens both address families.
 
-sensitive_ports := {
-	22: {"control_id": "5.2", "name": "SSH"},
-	3389: {"control_id": "5.3", "name": "RDP"},
+admin_ports := {22: "SSH", 3389: "RDP"}
+
+open_cidrs := {
+	"0.0.0.0/0": {"control_id": "5.3", "family": "IPv4"},
+	"::/0": {"control_id": "5.4", "family": "IPv6"},
 }
-
-open_cidrs := {"0.0.0.0/0", "::/0"}
 
 # --- normalize the three ways Terraform can declare an ingress rule --------
 
@@ -66,14 +68,14 @@ port_exposed(rule, port) if {
 
 deny contains msg if {
 	some rule in ingress_rules
-	some port, info in sensitive_ports
+	some port, name in admin_ports
 	port_exposed(rule, port)
 
-	open := {c | some c in rule.cidrs; c in open_cidrs}
-	count(open) > 0
+	some cidr, info in open_cidrs
+	cidr in rule.cidrs
 
 	msg := {
-		"msg": sprintf("%s allows %s (port %d) ingress from %s (entire internet).", [rule.address, info.name, port, concat(", ", sort(open))]),
+		"msg": sprintf("%s allows %s (port %d) ingress from %s (entire internet, %s).", [rule.address, name, port, cidr, info.family]),
 		"control_id": info.control_id,
 		"resource": rule.address,
 		"severity": "critical",

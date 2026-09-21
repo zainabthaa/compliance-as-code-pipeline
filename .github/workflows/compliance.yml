@@ -1,19 +1,19 @@
 name: Compliance Check
-
+ 
 on:
   pull_request:
   push:
     branches: [main]
-
+ 
 permissions:
   id-token: write       # GitHub OIDC token for AWS
   contents: read
   pull-requests: write  # post the compliance report as a PR comment
-
+ 
 env:
   CONFTEST_VERSION: "0.69.0"
   CONFTEST_SHA256: "96fc2fbf11f0afde51256647127e6f00a64ce839a4d9a0a1aef2426c0e6f4b3f" # conftest_0.69.0_Linux_x86_64.tar.gz
-
+ 
 jobs:
   compliance:
     runs-on: ubuntu-latest
@@ -22,7 +22,7 @@ jobs:
       # so a moved or hijacked tag can't change what runs in this pipeline.
       - name: Checkout code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
+ 
       - name: Install Conftest (checksum verified)
         run: |
           curl -sSfL -o conftest.tar.gz "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
@@ -30,64 +30,65 @@ jobs:
           tar xzf conftest.tar.gz conftest
           sudo mv conftest /usr/local/bin/
           conftest --version
-
+ 
       # Test the policies and the scripts BEFORE trusting them to judge infrastructure
       - name: Test policies (Rego unit tests)
         run: conftest verify --policy policy/cis-aws
-
+ 
       - name: Test scripts
         run: python3 -m unittest discover -s tests -v
-
+ 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }} # set in repo Settings > Secrets and variables > Variables
           aws-region: us-east-1
-
+ 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.16.0"
-
+ 
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
-
+ 
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -out=tfplan.binary
         env:
           TF_VAR_compliant_db_password: ${{ secrets.TF_VAR_compliant_db_password }}
-
+ 
       - name: Convert Plan to JSON
         working-directory: ./terraform
         run: terraform show -json tfplan.binary > tfplan.json
-
+ 
       # Exit code 1 = compliance violations (the gate), 2 = the tooling itself broke
       - name: Generate Compliance Report
         run: python3 scripts/generate_report.py
-
+ 
       - name: Generate Compliance Dashboard
         if: always()
         run: python3 scripts/generate_dashboard.py
-
+ 
       - name: Comment report on the pull request
         if: always() && github.event_name == 'pull_request' && hashFiles('compliance-report.md') != ''
         continue-on-error: true # PRs from forks get a read-only token; don't fail the gate over a comment
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr comment "${{ github.event.pull_request.number }}" --body-file compliance-report.md --edit-last --create-if-none
-
+ 
       - name: Upload Compliance Report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: compliance-report
           path: compliance-report.md
-
+ 
       - name: Upload Compliance Dashboard
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: compliance-dashboard
           path: dashboard.html
+ 

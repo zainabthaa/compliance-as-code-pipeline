@@ -6,38 +6,49 @@ package main
 
 flagged(id, plan) := {m.resource | some m in deny with input as plan; m.control_id == id}
 
-# ---------- security groups (5.2 / 5.3) ----------
+# ---------- security groups (CIS 5.3 = IPv4, 5.4 = IPv6) ----------
 sg(address, ingress) := {"resource_changes": [{
 	"address": address, "type": "aws_security_group",
 	"change": {"after": {"ingress": ingress}},
 }]}
 
+admin_findings(plan) := count([m | some m in deny with input as plan; m.control_id in {"5.3", "5.4"}])
+
 rule(proto, from, to, v4, v6) := {"protocol": proto, "from_port": from, "to_port": to, "cidr_blocks": v4, "ipv6_cidr_blocks": v6}
 
-test_ssh_open_ipv4 if flagged("5.2", sg("aws_security_group.a", [rule("tcp", 22, 22, ["0.0.0.0/0"], [])])) == {"aws_security_group.a"}
+test_ssh_open_ipv4 if flagged("5.3", sg("aws_security_group.a", [rule("tcp", 22, 22, ["0.0.0.0/0"], [])])) == {"aws_security_group.a"}
 
-test_ssh_open_ipv6 if flagged("5.2", sg("aws_security_group.a", [rule("tcp", 22, 22, [], ["::/0"])])) == {"aws_security_group.a"}
+test_ssh_open_ipv6_is_control_5_4 if {
+	plan := sg("aws_security_group.a", [rule("tcp", 22, 22, [], ["::/0"])])
+	flagged("5.4", plan) == {"aws_security_group.a"}
+	count(flagged("5.3", plan)) == 0
+}
 
-test_ssh_via_port_range if flagged("5.2", sg("aws_security_group.a", [rule("tcp", 0, 65535, ["0.0.0.0/0"], [])])) == {"aws_security_group.a"}
+test_ssh_via_port_range if flagged("5.3", sg("aws_security_group.a", [rule("tcp", 0, 65535, ["0.0.0.0/0"], [])])) == {"aws_security_group.a"}
 
 test_all_traffic_exposes_ssh_and_rdp if {
 	plan := sg("aws_security_group.a", [rule("-1", 0, 0, ["0.0.0.0/0"], [])])
-	flagged("5.2", plan) == {"aws_security_group.a"}
 	flagged("5.3", plan) == {"aws_security_group.a"}
+	count(flagged("5.4", plan)) == 0
 }
 
-test_ssh_internal_only_passes if count(flagged("5.2", sg("aws_security_group.a", [rule("tcp", 22, 22, ["10.0.0.0/16"], [])]))) == 0
+test_ssh_internal_only_passes if admin_findings(sg("aws_security_group.a", [rule("tcp", 22, 22, ["10.0.0.0/16"], [])])) == 0
 
-test_other_port_open_is_not_ssh if count(flagged("5.2", sg("aws_security_group.a", [rule("tcp", 443, 443, ["0.0.0.0/0"], [])]))) == 0
+test_other_port_open_is_not_admin_finding if admin_findings(sg("aws_security_group.a", [rule("tcp", 443, 443, ["0.0.0.0/0"], [])])) == 0
 
-test_dual_stack_gives_single_finding if count([m | some m in deny with input as sg("aws_security_group.a", [rule("tcp", 22, 22, ["0.0.0.0/0"], ["::/0"])]); m.control_id == "5.2"]) == 1
+test_dual_stack_raises_one_finding_per_family if {
+	plan := sg("aws_security_group.a", [rule("tcp", 22, 22, ["0.0.0.0/0"], ["::/0"])])
+	flagged("5.3", plan) == {"aws_security_group.a"}
+	flagged("5.4", plan) == {"aws_security_group.a"}
+	admin_findings(plan) == 2
+}
 
 test_standalone_sg_rule if {
 	plan := {"resource_changes": [{
 		"address": "aws_security_group_rule.ssh", "type": "aws_security_group_rule",
 		"change": {"after": {"type": "ingress", "protocol": "tcp", "from_port": 22, "to_port": 22, "cidr_blocks": ["0.0.0.0/0"], "ipv6_cidr_blocks": null}},
 	}]}
-	flagged("5.2", plan) == {"aws_security_group_rule.ssh"}
+	flagged("5.3", plan) == {"aws_security_group_rule.ssh"}
 }
 
 test_standalone_vpc_ingress_rule if {
@@ -45,7 +56,7 @@ test_standalone_vpc_ingress_rule if {
 		"address": "aws_vpc_security_group_ingress_rule.rdp", "type": "aws_vpc_security_group_ingress_rule",
 		"change": {"after": {"ip_protocol": "tcp", "from_port": 3389, "to_port": 3389, "cidr_ipv4": null, "cidr_ipv6": "::/0"}},
 	}]}
-	flagged("5.3", plan) == {"aws_vpc_security_group_ingress_rule.rdp"}
+	flagged("5.4", plan) == {"aws_vpc_security_group_ingress_rule.rdp"}
 }
 
 # ---------- IAM-1 ----------
@@ -78,7 +89,7 @@ test_pab_partial_settings_flagged if {
 		"address": "aws_s3_bucket_public_access_block.x", "type": "aws_s3_bucket_public_access_block",
 		"change": {"after": {"block_public_acls": true, "block_public_policy": false, "ignore_public_acls": true, "restrict_public_buckets": true}},
 	}]}
-	flagged("2.1.5.1", plan) == {"aws_s3_bucket_public_access_block.x"}
+	flagged("2.1.4", plan) == {"aws_s3_bucket_public_access_block.x"}
 }
 
 test_pab_all_true_passes if {
@@ -86,7 +97,7 @@ test_pab_all_true_passes if {
 		"address": "aws_s3_bucket_public_access_block.x", "type": "aws_s3_bucket_public_access_block",
 		"change": {"after": {"block_public_acls": true, "block_public_policy": true, "ignore_public_acls": true, "restrict_public_buckets": true}},
 	}]}
-	count(flagged("2.1.5.1", plan)) == 0
+	count(flagged("2.1.4", plan)) == 0
 }
 
 # root-level bucket with versioning + encryption
@@ -99,13 +110,13 @@ root_ok := {
 }
 
 test_bucket_with_versioning_and_encryption_passes if {
-	count(flagged("2.1.1", root_ok)) == 0
-	count(flagged("2.1.2", root_ok)) == 0
+	count(flagged("S3-ENC-1", root_ok)) == 0
+	count(flagged("S3-VER-1", root_ok)) == 0
 }
 
 test_versioning_suspended_flagged if {
 	plan := json.patch(root_ok, [{"op": "replace", "path": "/configuration/root_module/resources/0/expressions/versioning_configuration/0/status/constant_value", "value": "Suspended"}])
-	flagged("2.1.2", plan) == {"aws_s3_bucket.b"}
+	flagged("S3-VER-1", plan) == {"aws_s3_bucket.b"}
 }
 
 test_bucket_inside_module_is_matched if {
@@ -116,19 +127,19 @@ test_bucket_inside_module_is_matched if {
 			{"type": "aws_s3_bucket_server_side_encryption_configuration", "address": "aws_s3_bucket_server_side_encryption_configuration.e", "expressions": {"bucket": {"references": ["aws_s3_bucket.b.id", "aws_s3_bucket.b"]}}},
 		]}}}}},
 	}
-	count(flagged("2.1.1", plan)) == 0
-	count(flagged("2.1.2", plan)) == 0
+	count(flagged("S3-ENC-1", plan)) == 0
+	count(flagged("S3-VER-1", plan)) == 0
 }
 
 test_bucket_with_count_index_is_matched if {
 	plan := json.patch(root_ok, [{"op": "replace", "path": "/resource_changes/0/address", "value": "aws_s3_bucket.b[0]"}])
-	count(flagged("2.1.1", plan)) == 0
+	count(flagged("S3-ENC-1", plan)) == 0
 }
 
 test_bucket_without_companions_flagged if {
 	plan := {"resource_changes": [{"address": "aws_s3_bucket.lonely", "type": "aws_s3_bucket", "change": {"after": {}}}], "configuration": {"root_module": {"resources": []}}}
-	flagged("2.1.1", plan) == {"aws_s3_bucket.lonely"}
-	flagged("2.1.2", plan) == {"aws_s3_bucket.lonely"}
+	flagged("S3-ENC-1", plan) == {"aws_s3_bucket.lonely"}
+	flagged("S3-VER-1", plan) == {"aws_s3_bucket.lonely"}
 }
 
 # ---------- SECRET-1 ----------

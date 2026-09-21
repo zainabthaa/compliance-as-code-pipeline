@@ -1,78 +1,363 @@
 {
   "controls": [
     {
-      "id": "2.1.1",
+      "id": "S3-ENC-1",
       "title": "S3 Bucket Server-Side Encryption",
       "severity": "high",
       "resource_types": [
         "aws_s3_bucket"
       ],
       "risk": "Without encryption at rest, anyone who gains unauthorized access to the underlying storage can read the raw data directly.",
-      "remediation": "Add an aws_s3_bucket_server_side_encryption_configuration resource for this bucket with sse_algorithm = \"AES256\"."
+      "remediation": "Add an aws_s3_bucket_server_side_encryption_configuration resource for this bucket with sse_algorithm = \"AES256\".",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "none",
+          "items": [],
+          "note": "S3 encryption at rest is not a recommendation in v5.0.0."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "SC-13",
+              "title": "Cryptographic Protection"
+            },
+            {
+              "id": "SC-28",
+              "title": "Protection of Information at Rest"
+            }
+          ],
+          "basis": "AWS Security Hub control S3.17 (related requirements); base controls only, enhancements omitted; S3.17 is the KMS variant, so this is a related mapping"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.24",
+              "title": "Use of cryptography"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
-      "id": "2.1.2",
+      "id": "S3-VER-1",
       "title": "S3 Bucket Versioning",
       "severity": "medium",
       "resource_types": [
         "aws_s3_bucket"
       ],
       "risk": "Without versioning, an accidental or malicious overwrite/delete permanently destroys the data — there is no way to recover a prior version.",
-      "remediation": "Add an aws_s3_bucket_versioning resource for this bucket with status = \"Enabled\"."
+      "remediation": "Add an aws_s3_bucket_versioning resource for this bucket with status = \"Enabled\".",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "none",
+          "items": [],
+          "note": "S3 versioning is not a recommendation in v5.0.0 (2.1.2 there is MFA Delete)."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "CP-6",
+              "title": "Alternate Storage Site"
+            },
+            {
+              "id": "CP-9",
+              "title": "System Backup"
+            },
+            {
+              "id": "CP-10",
+              "title": "System Recovery and Reconstitution"
+            }
+          ],
+          "basis": "AWS Security Hub control S3.14 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.13",
+              "title": "Information backup"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
-      "id": "2.1.5.1",
+      "id": "2.1.4",
       "title": "S3 Block Public Access",
       "severity": "critical",
       "resource_types": [
         "aws_s3_bucket_public_access_block"
       ],
       "risk": "Disabling this safeguard means the bucket could be made publicly accessible, intentionally or by mistake, exposing its contents to the entire internet.",
-      "remediation": "Set block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets to true."
+      "remediation": "Set block_public_acls, block_public_policy, ignore_public_acls, and restrict_public_buckets to true.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "direct",
+          "items": [
+            {
+              "id": "2.1.4",
+              "title": "Ensure that S3 is configured with 'Block Public Access' enabled"
+            }
+          ],
+          "note": ""
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "AC-3",
+              "title": "Access Enforcement"
+            },
+            {
+              "id": "AC-4",
+              "title": "Information Flow Enforcement"
+            },
+            {
+              "id": "AC-6",
+              "title": "Least Privilege"
+            },
+            {
+              "id": "SC-7",
+              "title": "Boundary Protection"
+            }
+          ],
+          "basis": "AWS Security Hub control S3.8 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.5.15",
+              "title": "Access control"
+            },
+            {
+              "id": "A.8.3",
+              "title": "Information access restriction"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
-      "id": "2.3",
-      "title": "RDS Publicly Accessible",
-      "severity": "critical",
-      "resource_types": [
-        "aws_db_instance"
-      ],
-      "risk": "A database reachable directly from the internet is one of the most common real-world breach vectors — attackers actively scan for exposed databases.",
-      "remediation": "Set publicly_accessible = false on the RDS instance, and access it via a bastion host or VPN instead."
-    },
-    {
-      "id": "2.3.3",
+      "id": "2.2.1",
       "title": "RDS Storage Encryption",
       "severity": "high",
       "resource_types": [
         "aws_db_instance"
       ],
       "risk": "Unencrypted database storage means raw data is readable if the underlying disk is ever accessed without authorization.",
-      "remediation": "Set storage_encrypted = true on the RDS instance."
+      "remediation": "Set storage_encrypted = true on the RDS instance.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "direct",
+          "items": [
+            {
+              "id": "2.2.1",
+              "title": "Ensure that encryption-at-rest is enabled for RDS instances"
+            }
+          ],
+          "note": ""
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "SC-13",
+              "title": "Cryptographic Protection"
+            },
+            {
+              "id": "SC-28",
+              "title": "Protection of Information at Rest"
+            }
+          ],
+          "basis": "AWS Security Hub control RDS.3 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.24",
+              "title": "Use of cryptography"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
-      "id": "5.2",
-      "title": "SSH Open to the Internet",
+      "id": "2.2.3",
+      "title": "RDS Publicly Accessible",
       "severity": "critical",
       "resource_types": [
-        "aws_security_group",
-        "aws_security_group_rule",
-        "aws_vpc_security_group_ingress_rule"
+        "aws_db_instance"
       ],
-      "risk": "Port 22 open to 0.0.0.0/0 means anyone on the internet can attempt to log into the server — a constant, automated attack target.",
-      "remediation": "Restrict the security group's ingress CIDR block for port 22 to a specific internal range, not 0.0.0.0/0."
+      "risk": "A database reachable directly from the internet is one of the most common real-world breach vectors — attackers actively scan for exposed databases.",
+      "remediation": "Set publicly_accessible = false on the RDS instance, and access it via a bastion host or VPN instead.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "direct",
+          "items": [
+            {
+              "id": "2.2.3",
+              "title": "Ensure that RDS instances are not publicly accessible"
+            }
+          ],
+          "note": ""
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "AC-4",
+              "title": "Information Flow Enforcement"
+            },
+            {
+              "id": "SC-7",
+              "title": "Boundary Protection"
+            }
+          ],
+          "basis": "AWS Security Hub control RDS.2 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.20",
+              "title": "Networks security"
+            },
+            {
+              "id": "A.8.22",
+              "title": "Segregation of networks"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
       "id": "5.3",
-      "title": "RDP Open to the Internet",
+      "title": "Admin Ports (SSH/RDP) Open to the Internet - IPv4",
       "severity": "critical",
       "resource_types": [
         "aws_security_group",
         "aws_security_group_rule",
         "aws_vpc_security_group_ingress_rule"
       ],
-      "risk": "Same risk as SSH exposure, but for Windows remote desktop access — a very common ransomware entry point in real-world breaches.",
-      "remediation": "Restrict the security group's ingress CIDR block for port 3389 to a specific internal range, not 0.0.0.0/0."
+      "risk": "SSH (22) or RDP (3389) open to 0.0.0.0/0 means anyone on the internet can attempt to log in - a constant, automated attack target. Exposed remote desktop is also a very common ransomware entry point.",
+      "remediation": "Restrict the security group's ingress CIDR block for ports 22 and 3389 to a specific internal range, not 0.0.0.0/0.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "direct",
+          "items": [
+            {
+              "id": "5.3",
+              "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to remote server administration ports"
+            }
+          ],
+          "note": "Covers the IPv4 range 0.0.0.0/0. The benchmark's administration ports include SSH (22) and RDP (3389)."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "AC-4",
+              "title": "Information Flow Enforcement"
+            },
+            {
+              "id": "CM-7",
+              "title": "Least Functionality"
+            },
+            {
+              "id": "SC-7",
+              "title": "Boundary Protection"
+            }
+          ],
+          "basis": "AWS Security Hub EC2.13 (port 22) related requirements, base controls only; applied to RDP (3389) by analogy because the Security Hub page for EC2.14 lists no NIST mapping"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.20",
+              "title": "Networks security"
+            },
+            {
+              "id": "A.8.22",
+              "title": "Segregation of networks"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
+    },
+    {
+      "id": "5.4",
+      "title": "Admin Ports (SSH/RDP) Open to the Internet - IPv6",
+      "severity": "critical",
+      "resource_types": [
+        "aws_security_group",
+        "aws_security_group_rule",
+        "aws_vpc_security_group_ingress_rule"
+      ],
+      "risk": "SSH (22) or RDP (3389) open to ::/0 means anyone on the internet can attempt to log in - a constant, automated attack target. Exposed remote desktop is also a very common ransomware entry point.",
+      "remediation": "Restrict the security group's ingress CIDR block for ports 22 and 3389 to a specific internal range, not ::/0.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "direct",
+          "items": [
+            {
+              "id": "5.4",
+              "title": "Ensure no security groups allow ingress from ::/0 to remote server administration ports"
+            }
+          ],
+          "note": "Covers the IPv6 range ::/0. The benchmark's administration ports include SSH (22) and RDP (3389)."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "AC-4",
+              "title": "Information Flow Enforcement"
+            },
+            {
+              "id": "CM-7",
+              "title": "Least Functionality"
+            },
+            {
+              "id": "SC-7",
+              "title": "Boundary Protection"
+            }
+          ],
+          "basis": "Same mapping as 5.3 (IPv6 variant of the same requirement)"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.20",
+              "title": "Networks security"
+            },
+            {
+              "id": "A.8.22",
+              "title": "Segregation of networks"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
       "id": "EBS-1",
@@ -82,7 +367,44 @@
         "aws_ebs_volume"
       ],
       "risk": "An unencrypted disk volume exposes raw data if the volume is ever improperly detached, snapshotted, or accessed outside its intended instance.",
-      "remediation": "Set encrypted = true on the EBS volume."
+      "remediation": "Set encrypted = true on the EBS volume.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "related",
+          "items": [
+            {
+              "id": "5.1.1",
+              "title": "Ensure EBS volume encryption is enabled in all regions"
+            }
+          ],
+          "note": "CIS 5.1.1 is the account-level default-encryption setting; this control checks each volume."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "SC-13",
+              "title": "Cryptographic Protection"
+            },
+            {
+              "id": "SC-28",
+              "title": "Protection of Information at Rest"
+            }
+          ],
+          "basis": "AWS Security Hub control EC2.3 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.8.24",
+              "title": "Use of cryptography"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
       "id": "IAM-1",
@@ -95,7 +417,56 @@
         "aws_iam_group_policy"
       ],
       "risk": "A policy granting Action=\"*\" and Resource=\"*\" gives full administrative control over the entire AWS account to anything using it — a single compromised credential means total account takeover.",
-      "remediation": "Scope the policy's Action and Resource fields to only the specific permissions needed, instead of \"*\"."
+      "remediation": "Scope the policy's Action and Resource fields to only the specific permissions needed, instead of \"*\".",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "related",
+          "items": [
+            {
+              "id": "1.15",
+              "title": "Ensure IAM policies that allow full '*:*' administrative privileges are not attached"
+            }
+          ],
+          "note": "CIS 1.15 checks policies that are attached; this control checks policy definitions in Terraform, so it catches the problem before anything is attached."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "AC-2",
+              "title": "Account Management"
+            },
+            {
+              "id": "AC-3",
+              "title": "Access Enforcement"
+            },
+            {
+              "id": "AC-5",
+              "title": "Separation of Duties"
+            },
+            {
+              "id": "AC-6",
+              "title": "Least Privilege"
+            }
+          ],
+          "basis": "AWS Security Hub control IAM.1 (related requirements); base controls only, enhancements omitted"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.5.15",
+              "title": "Access control"
+            },
+            {
+              "id": "A.8.2",
+              "title": "Privileged access rights"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     },
     {
       "id": "SECRET-1",
@@ -106,7 +477,43 @@
         "aws_secretsmanager_secret_version"
       ],
       "risk": "A password committed directly in source code is visible to anyone with repo access, remains in Git history forever even if later removed, and is a leading cause of real-world credential leaks.",
-      "remediation": "Move the password into a Terraform variable marked sensitive = true, supplied via .tfvars (gitignored) or a secrets manager."
+      "remediation": "Move the password into a Terraform variable marked sensitive = true, supplied via .tfvars (gitignored) or a secrets manager.",
+      "references": {
+        "cis_aws": {
+          "benchmark": "CIS AWS Foundations Benchmark v5.0.0",
+          "match": "none",
+          "items": [],
+          "note": "No CIS AWS recommendation covers secrets in Terraform source."
+        },
+        "nist_800_53": {
+          "revision": "Rev 5",
+          "items": [
+            {
+              "id": "IA-5",
+              "title": "Authenticator Management"
+            },
+            {
+              "id": "IA-5(7)",
+              "title": "No Embedded Unencrypted Static Authenticators"
+            }
+          ],
+          "basis": "Author-assigned: AWS Security Hub has no equivalent control. IA-5(7) is 'No Embedded Unencrypted Static Authenticators'"
+        },
+        "iso_27001": {
+          "edition": "ISO/IEC 27001:2022 Annex A",
+          "items": [
+            {
+              "id": "A.5.17",
+              "title": "Authentication information"
+            },
+            {
+              "id": "A.8.4",
+              "title": "Access to source code"
+            }
+          ],
+          "basis": "Author-assigned by control intent; indicative only (no official crosswalk used)"
+        }
+      }
     }
   ]
 }

@@ -1,0 +1,4 @@
+{
+  "_comment": "fail_on: findings at this severity or higher BLOCK the pipeline. Lower ones are reported as warnings. One of: low, medium, high, critical.",
+  "fail_on": "high"
+}

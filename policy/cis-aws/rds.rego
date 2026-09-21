@@ -7,7 +7,7 @@ deny contains msg if {
 
 	msg := {
 		"msg": sprintf("%s is a publicly accessible RDS instance.", [db.address]),
-		"control_id": "2.3",
+		"control_id": "2.2.3",
 		"resource": db.address,
 		"severity": "critical",
 	}
@@ -20,7 +20,7 @@ deny contains msg if {
 
 	msg := {
 		"msg": sprintf("%s has unencrypted RDS storage.", [db.address]),
-		"control_id": "2.3.3",
+		"control_id": "2.2.1",
 		"resource": db.address,
 		"severity": "high",
 	}

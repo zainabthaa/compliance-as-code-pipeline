@@ -1,6 +1,6 @@
 package main
 
-# ---- 2.1.5.1  S3 Block Public Access -------------------------------------
+# ---- 2.1.4  S3 Block Public Access (CIS AWS v5.0.0) -------------------------------------
 # All four settings must be true. Checking only one (block_public_acls) lets
 # a bucket that still allows public *policies* slip through.
 public_access_flags := [
@@ -23,7 +23,7 @@ deny contains msg if {
 
 	msg := {
 		"msg": sprintf("%s does not enable: %s. S3 buckets must block public access.", [res.address, concat(", ", disabled)]),
-		"control_id": "2.1.5.1",
+		"control_id": "2.1.4",
 		"resource": res.address,
 		"severity": "critical",
 	}
@@ -39,7 +39,7 @@ companion_for_bucket(resource_type, bucket_address) := {res |
 	concat("", [res.prefix, reference]) == bucket_address
 }
 
-# ---- 2.1.1  S3 server-side encryption -------------------------------------
+# ---- S3-ENC-1  S3 server-side encryption (no CIS v5.0.0 equivalent) -------------------------------------
 bucket_has_encryption(bucket_address) if {
 	count(companion_for_bucket("aws_s3_bucket_server_side_encryption_configuration", bucket_address)) > 0
 }
@@ -51,13 +51,13 @@ deny contains msg if {
 
 	msg := {
 		"msg": sprintf("%s has no server-side encryption configured.", [bucket.address]),
-		"control_id": "2.1.1",
+		"control_id": "S3-ENC-1",
 		"resource": bucket.address,
 		"severity": "high",
 	}
 }
 
-# ---- 2.1.2  S3 versioning -------------------------------------------------
+# ---- S3-VER-1  S3 versioning (no CIS v5.0.0 equivalent) -------------------------------------------------
 # The versioning resource must exist AND have status = "Enabled".
 # (status = "Suspended"/"Disabled" used to pass because only existence was checked.)
 bucket_has_versioning(bucket_address) if {
@@ -72,7 +72,7 @@ deny contains msg if {
 
 	msg := {
 		"msg": sprintf("%s does not have versioning enabled (needs an aws_s3_bucket_versioning resource with status = \"Enabled\").", [bucket.address]),
-		"control_id": "2.1.2",
+		"control_id": "S3-VER-1",
 		"resource": bucket.address,
 		"severity": "medium",
 	}
