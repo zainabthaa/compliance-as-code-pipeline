@@ -186,3 +186,15 @@ resource "aws_iam_policy" "compliant_policy" {
     ]
   })
 }
+
+resource "aws_security_group" "test_ipv6_open" {
+  name        = "test-ipv6-open"
+  description = "TEST ONLY - SSH open to the world over IPv6"
+
+  ingress {
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
